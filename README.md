@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NFT Trader — Mint, Collect & Trade NFTs
 
-## Getting Started
+A complete NFT marketplace built with **Next.js 16**, **Firebase**, **thirdweb**, **shadcn/ui**, **Zustand**, and **TanStack Query**. Uses **hexagonal architecture** throughout — both frontend and backend. **Functions only, no classes.**
 
-First, run the development server:
+## Architecture (Hexagonal)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+┌─────────────────────────────────────────────────────────┐
+│                     FRONTEND (Next.js)                  │
+│                                                         │
+│  Pages ──► Hooks (TanStack Query) ──► Stores (Zustand)  │
+│                      │                                  │
+│              domain/ports.ts  (interfaces)               │
+│                      │                                  │
+│              adapters/*-adapter.ts  (Firebase impls)     │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│              BACKEND (Firebase Functions)                │
+│                                                         │
+│  index.ts (entry) ──► domain/ports.ts (interfaces)      │
+│                              │                          │
+│                   adapters/firestore-adapter.ts          │
+└─────────────────────────────────────────────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Frontend Layers
+- **`src/domain/`** — Pure types & port interfaces (no framework code)
+- **`src/adapters/`** — Firebase implementations of ports
+- **`src/stores/`** — Zustand state management
+- **`src/hooks/`** — TanStack Query hooks (connect UI ↔ domain)
+- **`src/components/ui/`** — shadcn/ui primitives
+- **`src/components/`** — Feature components (Header, NFTCard)
+- **`src/app/`** — Next.js pages & layouts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Backend Layers
+- **`functions/src/domain/`** — Types & port interfaces
+- **`functions/src/adapters/`** — Firestore implementations
+- **`functions/src/index.ts`** — Cloud Functions entry (4 microservices)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Features
 
-## Learn More
+| Feature | Description |
+|---------|-------------|
+| 🎨 **Theme Toggle** | Light/dark mode with persisted preference |
+| 🔐 **Google Auth** | Sign in with Google via Firebase Auth |
+| 💎 **Mint NFTs** | 5 rarity tiers (Common → Legendary) with random generation |
+| 📦 **Inventory** | View, filter by rarity, select for trading |
+| 🔄 **P2P Trading** | Create/accept/reject/cancel trade offers |
+| 📜 **Trade History** | Full audit trail of all completed trades |
+| 👥 **User Discovery** | Search & browse other collectors |
+| ☁️ **Firebase Functions** | 4 secure microservices for trade operations |
 
-To learn more about Next.js, take a look at the following resources:
+## Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Next.js 16** — React framework
+- **Firebase** — Auth, Firestore, Functions, Hosting
+- **thirdweb** — Wallet connection infrastructure
+- **shadcn/ui** — Radix + Tailwind component library
+- **Zustand** — State management
+- **TanStack Query** — Async data fetching & caching
+- **Tailwind CSS 4** — Styling
+- **Lucide React** — Icons
+- **TypeScript** — Full type safety
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Pages
 
-## Deploy on Vercel
+| Route | Description |
+|-------|-------------|
+| `/` | Fancy landing page with hero, rarity showcase, features |
+| `/dashboard` | Overview with stats, mint button, recent NFTs |
+| `/dashboard/inventory` | Full inventory with rarity filtering |
+| `/dashboard/trade` | Find users, create trades, manage offers |
+| `/dashboard/history` | Complete trade history log |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Firebase Functions (Microservices)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Function | Description |
+|----------|-------------|
+| `createTrade` | Validates ownership, creates pending trade |
+| `acceptTrade` | Re-verifies ownership, executes NFT swap |
+| `rejectTrade` | Marks trade as rejected, records history |
+| `cancelTrade` | Marks trade as cancelled, records history |
+
+## Setup
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   cd functions && npm install && cd ..
+   ```
+
+2. **Environment variables** (`.env.local`):
+   ```
+   NEXT_PUBLIC_FIREBASE_API_KEY=...
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+   NEXT_PUBLIC_FIREBASE_APP_ID=...
+   NEXT_PUBLIC_THIRDWEB_CLIENT_ID=...
+   ```
+
+3. **Enable Google Auth** in Firebase Console → Authentication → Sign-in method → Google
+
+4. **Run locally:**
+   ```bash
+   npm run dev
+   ```
+
+## Deploy
+
+```bash
+# Deploy everything (functions + hosting + rules)
+npm run deploy
+
+# Deploy only functions
+npm run deploy:functions
+
+# Deploy only hosting
+npm run deploy:hosting
+
+# Deploy only Firestore rules
+npm run deploy:rules
+```

@@ -23,14 +23,23 @@ export const useSignIn = () => {
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
       console.error("Sign in failed:", err.code, err.message);
-      if (err.code === "auth/unauthorized-domain") {
+
+      if (err.code === "auth/popup-blocked") {
         alert(
-          "This domain is not authorized for sign-in. Please add it to your Firebase Console → Authentication → Settings → Authorized domains."
+          "Popup was blocked by your browser. Please allow popups for this site and try again."
+        );
+      } else if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
+        // User closed the popup — no need to alert
+      } else if (err.code === "auth/unauthorized-domain") {
+        alert(
+          "This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains."
         );
       } else if (err.code === "auth/configuration-not-found") {
         alert(
-          "Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Google."
+          "Google sign-in is not enabled. Enable it in Firebase Console → Authentication → Sign-in method → Google."
         );
+      } else if (err.code === "auth/network-request-failed") {
+        alert("Network error. Check your internet connection and try again.");
       } else {
         alert(`Sign in failed: ${err.message || "Unknown error"}`);
       }

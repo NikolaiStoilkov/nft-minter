@@ -1,8 +1,6 @@
 import {
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signOut as fbSignOut,
   onAuthStateChanged as fbOnAuthStateChanged,
   type User,
@@ -13,6 +11,7 @@ import type { AuthPort } from "@/domain/ports";
 import type { UserProfile } from "@/domain/types";
 
 const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: "select_account" });
 
 const mapFirebaseUser = (user: User): UserProfile => ({
   uid: user.uid,
@@ -28,10 +27,7 @@ const ensureUserProfile = async (user: User): Promise<UserProfile> => {
   try {
     const snap = await getDoc(userRef);
     if (!snap.exists()) {
-      await setDoc(userRef, {
-        ...profile,
-        createdAt: serverTimestamp(),
-      });
+      await setDoc(userRef, { ...profile, createdAt: serverTimestamp() });
     }
   } catch (e) {
     console.warn("Could not write user profile to Firestore:", e);
@@ -40,19 +36,8 @@ const ensureUserProfile = async (user: User): Promise<UserProfile> => {
 };
 
 const signInWithGoogle: AuthPort["signInWithGoogle"] = async () => {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    return ensureUserProfile(result.user);
-  } catch (error: unknown) {
-    const err = error as { code?: string; message?: string };
-    if (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user") {
-      console.warn("Popup blocked/closed, trying redirect...");
-      await signInWithRedirect(auth, provider);
-      return null as unknown as UserProfile;
-    }
-    console.error("Sign-in error:", err.code, err.message);
-    throw error;
-  }
+  const result = await signInWithPopup(auth, provider);
+  return ensureUserProfile(result.user);
 };
 
 const signOut: AuthPort["signOut"] = async () => {
@@ -60,15 +45,6 @@ const signOut: AuthPort["signOut"] = async () => {
 };
 
 const onAuthStateChanged: AuthPort["onAuthStateChanged"] = (callback) => {
-  getRedirectResult(auth)
-    .then(async (result) => {
-      if (result?.user) {
-        const profile = await ensureUserProfile(result.user);
-        callback(profile);
-      }
-    })
-    .catch((e) => console.warn("Redirect result error:", e));
-
   return fbOnAuthStateChanged(auth, async (user) => {
     if (user) {
       const profile = await ensureUserProfile(user);
